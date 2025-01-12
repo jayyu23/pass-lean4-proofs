@@ -23,3 +23,13 @@ structure InternalTransfer where
   fromSubAccount : SubAccount
   toSubAccount : SubAccount
   amount : Nat
+
+inductive Transfer where
+  | external : ExternalTransfer → Transfer
+  | internal : InternalTransfer → Transfer
+
+-- Role is a user's role in the system
+inductive Role where
+  | admin
+  | user
+  deriving Repr, DecidableEq
