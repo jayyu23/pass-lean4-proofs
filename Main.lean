@@ -1,26 +1,24 @@
--- import LiqLeanPolicy
+import LiqLeanPolicy.Basic
 
--- def main : IO Unit := do
-  -- Create test addresses
-  -- let addr1 := Address.mk "0x1234"
-  -- let addr2 := Address.mk "0x5678"
+def a : Address := "0xabcd"
 
-  -- -- Create test accounts
-  -- let account1 := Account.mk addr1 addr1
-  -- let account2 := Account.mk addr2 addr2
+def account : Account := {
+  address := a,
+  owner := a
+}
 
-  -- -- Initialize token state with some balances
-  -- let initialState := TokenState.mk [
-  --   (addr1, (1000 : Nat)),
-  --   (addr2, (500 : Nat))
-  -- ]
+def subaccount : SubAccount := {
+  domain := account,
+  identifier := "0x1234"
+}
 
-  -- -- Create a test transfer
-  -- let transfer := ExternalTransfer.mk account1 addr2 100
+theorem test : account.address = a := by
+  rfl
 
-  -- -- Test balance checking
-  -- let senderBalance := getBalance initialState addr1
-  -- IO.println s!"{addr1}"
+#check account.address
+def addr_string : String := account.address
 
 def main : IO Unit := do
-IO.println "Hello, World!"
+  IO.println s!"{subaccount.identifier}@{addr_string}"
+  #check addr_string
+#check main
