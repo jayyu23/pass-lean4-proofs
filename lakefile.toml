@@ -1,0 +1,10 @@
+name = "liq-lean-policy"
+version = "0.1.0"
+defaultTargets = ["liq-lean-policy"]
+
+[[lean_lib]]
+name = "LiqLeanPolicy"
+
+[[lean_exe]]
+name = "liq-lean-policy"
+root = "Main"
