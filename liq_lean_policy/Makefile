@@ -1,6 +1,7 @@
 .PHONY: build run clean
 
 build:
+	lake clean
 	lake build
 
 run: build
