@@ -9,6 +9,7 @@ inductive AssetType
 inductive TxStep
   | externalIn (txHash : String)
   | internalTransfer (fromSubaccount : String) -- TODO: model as Subaccount
+  deriving Repr, DecidableEq
   -- | gsmRequest (domain : String) -- Don't model GSM yet
 
 structure Asset where
@@ -18,6 +19,7 @@ structure Asset where
   provenanceChain : List TxStep
   totalBalance : Nat
   -- balanceMap : Finmap (λ _ : String ↦ Nat) -- Subaccount -> Balance
+  deriving Repr
 
 def externalIn (txHash : String) (asset : Asset) : Asset :=
 { asset with provenanceChain := TxStep.externalIn txHash :: asset.provenanceChain }
@@ -26,11 +28,15 @@ def internalTransfer (fromSubaccount : String) (asset : Asset) : Asset :=
   { asset with provenanceChain := TxStep.internalTransfer fromSubaccount :: asset.provenanceChain }
 
 -- Define valid provenance chain. Must end with an externalIn step
-def hasValidProvenance (asset : Asset) : Prop :=
+def hasValidProvenance (asset : Asset) : Bool :=
   match asset.provenanceChain with
-  | [] => False
-  | [TxStep.externalIn _] => True
-  | _ => False
+  | [] => false
+  | [TxStep.externalIn _] => true
+  | _ => false
+
+-- Provide instance for decidability
+instance : ∀ (a : Asset), Decidable (hasValidProvenance a = true) :=
+  fun a => Bool.decEq (hasValidProvenance a) true
 
 -- Test this
 example (txHash : String) (a : Asset) (h : a.provenanceChain = []) :
