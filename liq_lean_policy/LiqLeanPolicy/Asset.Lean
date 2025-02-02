@@ -1,4 +1,3 @@
-import Mathlib.Data.Finmap
 import LiqLeanPolicy.EVMState
 
 inductive AssetType
@@ -32,4 +31,18 @@ def Asset.getBalance (asset : Asset) (address : Address) : Nat :=
   | none => 0
 
 def Asset.getTotalBalance (asset : Asset) : Nat :=
-  asset.balanceMap.foldl (fun acc (addr, bal) => acc + bal) 0
+  asset.balanceMap.foldl (fun sum (_, bal) => sum + bal) 0
+
+def Asset.updateBalance (asset : Asset) (address : Address) (amount : Nat) : Asset :=
+  let newBalanceEntry := (address, amount)
+  let updatedBalanceMap :=
+    match asset.balanceMap.lookup address with
+    | some _ =>  -- Address exists, update the balance
+      asset.balanceMap.map (fun entry =>
+        if entry.1 == address then newBalanceEntry else entry)
+    | none => -- Address doesn't exist, add a new entry
+      newBalanceEntry :: asset.balanceMap
+  { asset with balanceMap := updatedBalanceMap }
+
+def Asset.hasBalance (asset : Asset) (address : Address) (amount : Nat) : Bool :=
+  asset.getBalance address >= amount

@@ -29,18 +29,25 @@ def PassAccount.getAsset (self : PassAccount) (assetId : String)  : Option Asset
   self.assets.find? (fun asset => asset.id = assetId)
 
 def PassAccount.claimAsset (self : PassAccount) (assetId : String) (requester : SubAccount) : PassAccount :=
-  -- Check if there's a matching claim in the inbox
-  match self.inbox.claimMap.find? (fun (sender, id, amount) => id = assetId && requester.owner = sender) with
+  match self.inbox.claimMap.find? (fun (sender, id, _) => id = assetId && requester.owner = sender) with
   | none => self  -- No claim found in inbox, return unchanged
   | some (sender, _, claimAmount) =>
     match self.getAsset assetId with
     | some asset =>
-      -- Update asset map by adding the claim amount
       let newBalance := asset.getBalance requester.owner + claimAmount
-      let newAsset := { asset with balanceMap := (requester.owner, newBalance) :: asset.balanceMap }
-      -- Remove the claim from inbox after processing
+      -- Update Asset
+      let newAsset := Asset.updateBalance asset requester.owner newBalance
+      let updatedAssets := self.assets.map (fun a => if a.id = assetId then newAsset else a)
+      -- Update Inbox
       let newInbox := { self.inbox with claimMap := self.inbox.claimMap.filter (fun (s, id, _) => !(s = sender && id = assetId)) }
-      -- Update the assets list by replacing the old asset with the new one
-      let newAssets := self.assets.map (fun a => if a.id = assetId then newAsset else a)
-      { self with assets := newAssets, inbox := newInbox }
-    | none => self
+      { self with assets := updatedAssets, inbox := newInbox }  -- Use updatedAssets
+    | none => self  -- Asset not found, return unchanged
+
+
+def PassAccount.transferAsset (self : PassAccount) (assetId : String) (sender : SubAccount) (recipient : SubAccount) (amount : Nat) : PassAccount :=
+  -- TODO: Implement this
+  self
+
+def PassAccount.sendAsset (self : PassAccount) (assetId : String) (sender : SubAccount) (recipient : SubAccount) (amount : Nat) : PassAccount :=
+  -- TODO: Implement this
+  self
