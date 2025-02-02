@@ -1,24 +1,29 @@
-import LiqLeanPolicy.Basic
+-- TODO: first make this work with ether wei.
+-- TODO: then make this work with tokens.
+-- TODO: then make this work with GSM.
 
-def a : Address := "0xabcd"
 
-def account : Account := {
-  address := a,
-  owner := a
-}
+-- import LiqLeanPolicy.Basic
 
-def subaccount : SubAccount := {
-  domain := account,
-  identifier := "0x1234"
-}
+-- def a : Address := "0xabcd"
 
-theorem test : account.address = a := by
-  rfl
+-- def account : Account := {
+--   address := a,
+--   owner := a
+-- }
 
-#check account.address
-def addr_string : String := account.address
+-- def subaccount : SubAccount := {
+--   domain := account,
+--   identifier := "0x1234"
+-- }
 
-def main : IO Unit := do
-  IO.println s!"{subaccount.identifier}@{addr_string}"
-  #check addr_string
-#check main
+-- theorem test : account.address = a := by
+--   rfl
+
+-- #check account.address
+-- def addr_string : String := account.address
+
+-- def main : IO Unit := do
+--   IO.println s!"{subaccount.identifier}@{addr_string}"
+--   #check addr_string
+-- #check main

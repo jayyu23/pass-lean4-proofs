@@ -1,4 +1,5 @@
 import Mathlib.Data.Finmap
+import LiqLeanPolicy.EVMState
 
 inductive AssetType
   | Ether -- ETH is a special asset case
@@ -6,55 +7,29 @@ inductive AssetType
   | GSM -- General Signable Message
   deriving Repr, BEq, DecidableEq
 
-inductive TxStep
-  | externalIn (txHash : String)
-  | internalTransfer (fromSubaccount : String) -- TODO: model as Subaccount
-  deriving Repr, DecidableEq
-  -- | gsmRequest (domain : String) -- Don't model GSM yet
-
 structure Asset where
   id : String
   assetType : AssetType
-  divisible : Bool
-  provenanceChain : List TxStep
-  totalBalance : Nat
-  -- balanceMap : Finmap (λ _ : String ↦ Nat) -- Subaccount -> Balance
-  deriving Repr
+  balanceMap : List (Address × Nat)
+  deriving Repr, BEq, DecidableEq
 
-def externalIn (txHash : String) (asset : Asset) : Asset :=
-{ asset with provenanceChain := TxStep.externalIn txHash :: asset.provenanceChain }
+inductive TransactionType
+  | external
+  | internal
+  deriving Repr, BEq, DecidableEq
 
-def internalTransfer (fromSubaccount : String) (asset : Asset) : Asset :=
-  { asset with provenanceChain := TxStep.internalTransfer fromSubaccount :: asset.provenanceChain }
+structure PassTransaction where
+  txType : TransactionType
+  sender : Address
+  recipient : Address
+  asset : Asset
+  amount : Nat
+  deriving Repr, BEq, DecidableEq
 
--- Define valid provenance chain. Must end with an externalIn step
-def hasValidProvenance (asset : Asset) : Bool :=
-  match asset.provenanceChain with
-  | [] => false
-  | [TxStep.externalIn _] => true
-  | _ => false
+def Asset.getBalance (asset : Asset) (address : Address) : Nat :=
+  match asset.balanceMap.lookup address with
+  | some bal => bal
+  | none => 0
 
--- Provide instance for decidability
-instance : ∀ (a : Asset), Decidable (hasValidProvenance a = true) :=
-  fun a => Bool.decEq (hasValidProvenance a) true
-
--- Test this
-example (txHash : String) (a : Asset) (h : a.provenanceChain = []) :
-  hasValidProvenance (externalIn txHash a) := by
-  -- Simplify the definition of `hasValidProvenance` after applying `externalIn`
-  simp [externalIn, hasValidProvenance]
-  -- After substitution, the provenance chain is [TxStep.externalIn txHash]
-  simp [h]
-
--- example (fromSubaccount : String) (a : Asset) (h : hasValidProvenance a) :
---   hasValidProvenance (internalTransfer fromSubaccount a) := by
---   -- Decompose the validity condition of the original asset `a`
-
---   cases' h with h₁ h₂ <;> simp_all [hasValidProvenance]
---   -- Case where the provenance chain is empty, which contradicts the assumption that `a` has valid provenance
---   <;> induction' h₁ with hd tl <;> cases hd <;>
---     -- Ensure each step correctly updates the provenance chain when applying internal transfer
---     simp_all [internalTransfer, hasValidProvenance]
---   -- After handling all subcases, ensure the final state is correct
---   <;> rfl
---   -- Final check to ensure all conditions are met
+def Asset.getTotalBalance (asset : Asset) : Nat :=
+  asset.balanceMap.foldl (fun acc (addr, bal) => acc + bal) 0
