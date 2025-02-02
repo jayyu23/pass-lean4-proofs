@@ -1,13 +1,12 @@
 import Mathlib.Data.Finmap
 
-
 /- Simplified EVM state model-/
 /- Represents an Ethereum address as a 160-bit number -/
-def Address := Nat
+def Address := String
 deriving Repr, BEq, DecidableEq
 
 /- Represents Wei (smallest Ethereum unit) amount -/
-def Wei := Nat
+def Wei := String
 deriving Repr, BEq, DecidableEq
 
 /- Basic transaction structure -/

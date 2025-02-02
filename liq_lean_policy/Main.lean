@@ -1,29 +1,19 @@
--- TODO: first make this work with ether wei.
--- TODO: then make this work with tokens.
--- TODO: then make this work with GSM.
+import LiqLeanPolicy.PassAccount
 
+def asset1 : Asset := {
+  id := "ether",
+  assetType := AssetType.Ether,
+  balanceMap := []
+}
 
--- import LiqLeanPolicy.Basic
+def passAccount1 : PassAccount := {
+  id := "pass1",
+  subaccounts := [{ id := "sub1", owner := "0x1234" }],
+  eoaAccount := "0x1234",
+  assets := [asset1],
+  inbox := { id := "inbox1", owner := "0x1234", claimMap := [] },
+  outbox := { id := "outbox1", owner := "0x1234", txQueue := [], nonce := 0 }
+}
 
--- def a : Address := "0xabcd"
-
--- def account : Account := {
---   address := a,
---   owner := a
--- }
-
--- def subaccount : SubAccount := {
---   domain := account,
---   identifier := "0x1234"
--- }
-
--- theorem test : account.address = a := by
---   rfl
-
--- #check account.address
--- def addr_string : String := account.address
-
--- def main : IO Unit := do
---   IO.println s!"{subaccount.identifier}@{addr_string}"
---   #check addr_string
--- #check main
+#eval Asset.getBalance asset1 "0x1234" -- Should be 0
+#check passAccount1
