@@ -1,12 +1,12 @@
-import Mathlib.Data.Finmap
+import Std.Data.HashMap
 
 /- Simplified EVM state model-/
 /- Represents an Ethereum address as a 160-bit number -/
 def Address := String
-deriving Repr, BEq, DecidableEq
+deriving Repr, BEq, DecidableEq, Hashable
 
 /- Represents Wei (smallest Ethereum unit) amount -/
-def Wei := String
+def Wei := Nat
 deriving Repr, BEq, DecidableEq
 
 /- Basic transaction structure -/
@@ -15,7 +15,7 @@ structure Transaction where
   from_address: Address
   to_address: Address
   value: Wei
-  data: List Nat
+  data: List String
   gasPrice: Wei
   gasLimit: Nat
   deriving Repr, BEq, DecidableEq
@@ -26,7 +26,7 @@ structure Account where
   balance: Wei
   nonce: Nat
   code: List Nat
-  storage: Finmap (λ _ : Nat ↦ Nat)
+  storage: Std.HashMap Nat Nat := Std.HashMap.empty
 
 /- Block header -/
 structure BlockHeader where
@@ -45,7 +45,21 @@ structure Block where
   deriving Repr, BEq, DecidableEq
 
 /- World state as a mapping from addresses to accounts -/
-def WorldState := Finmap (λ _ : Address ↦ Account)
+def WorldState : Std.HashMap Address Account := Std.HashMap.empty
 
 /- Blockchain as a list of blocks -/
 def Blockchain := List Block
+
+def isEOA (address : Address) : Bool :=
+  -- If address in WorldState and account.code is not empty, then not EOA
+  match WorldState.get? address with
+  | some account => account.code.isEmpty -- If code is not empty, then smart contract
+  | none => true -- Assume all other addresses are EOAs
+
+/- Util functions -/
+-- Add value to a HashMap. We assume that value is a numeric
+def Std.HashMap.addVal {K V} [BEq K] [Hashable K] [Add V]
+  (map : Std.HashMap K V) (key : K) (value : V) : Std.HashMap K V :=
+  match map.get? key with
+  | some v => map.insert key (v + value)
+  | none => map.insert key value

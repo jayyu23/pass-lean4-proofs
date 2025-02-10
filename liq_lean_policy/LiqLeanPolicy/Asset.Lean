@@ -9,8 +9,8 @@ inductive AssetType
 structure Asset where
   id : String
   assetType : AssetType
-  balanceMap : List (Address × Nat)
-  deriving Repr, BEq, DecidableEq
+  balanceMap : Std.HashMap Address Nat := Std.HashMap.empty
+  deriving Repr
 
 inductive TransactionType
   | external
@@ -23,26 +23,37 @@ structure PassTransaction where
   recipient : Address
   asset : Asset
   amount : Nat
-  deriving Repr, BEq, DecidableEq
+  deriving Repr
 
 def Asset.getBalance (asset : Asset) (address : Address) : Nat :=
-  match asset.balanceMap.lookup address with
+  match asset.balanceMap.get? address with
   | some bal => bal
   | none => 0
 
 def Asset.getTotalBalance (asset : Asset) : Nat :=
-  asset.balanceMap.foldl (fun sum (_, bal) => sum + bal) 0
+  asset.balanceMap.fold (fun sum _ bal => sum + bal) 0
 
 def Asset.updateBalance (asset : Asset) (address : Address) (amount : Nat) : Asset :=
-  let newBalanceEntry := (address, amount)
-  let updatedBalanceMap :=
-    match asset.balanceMap.lookup address with
-    | some _ =>  -- Address exists, update the balance
-      asset.balanceMap.map (fun entry =>
-        if entry.1 == address then newBalanceEntry else entry)
-    | none => -- Address doesn't exist, add a new entry
-      newBalanceEntry :: asset.balanceMap
-  { asset with balanceMap := updatedBalanceMap }
+  let newBalanceMap := asset.balanceMap.insert address amount
+  { asset with balanceMap := newBalanceMap }
+
 
 def Asset.hasBalance (asset : Asset) (address : Address) (amount : Nat) : Bool :=
   asset.getBalance address >= amount
+
+-- Creates a new asset from a transaction
+def Asset.getAssetFromTx (tx : Transaction) : Asset :=
+  if isEOA tx.to_address then
+    { id := "ether",
+      assetType := AssetType.Ether,
+      balanceMap := Std.HashMap.empty.insert tx.to_address tx.value }
+  else
+  -- If it's a token transfer, then we can use the token address as the asset id. Value is in the second element of the data field
+  let value := match tx.data with
+    | _::v::_ => match v.toNat? with
+      | some value => value
+      | none => 0
+    | _ => 0
+
+  let balanceMap := Std.HashMap.empty.insert tx.to_address value
+  { id := tx.to_address, assetType := AssetType.Token, balanceMap }
