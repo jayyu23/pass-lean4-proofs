@@ -42,11 +42,11 @@ def Asset.hasBalance (asset : Asset) (address : Address) (amount : Nat) : Bool :
   asset.getBalance address >= amount
 
 -- Creates a new asset from a transaction
-def Asset.getAssetFromTx (tx : Transaction) : Asset :=
-  if isEOA tx.to_address then
+def Asset.getAssetFromTx (tx : Transaction) (worldState : WorldState) : Asset :=
+  if isEOA worldState tx.to_address then
     { id := "ether",
       assetType := AssetType.Ether,
-      balanceMap := Std.HashMap.empty.insert tx.to_address tx.value }
+      balanceMap := Std.HashMap.empty.insert tx.from_address tx.value }
   else
   -- If it's a token transfer, then we can use the token address as the asset id. Value is in the second element of the data field
   let value := match tx.data with
@@ -55,5 +55,5 @@ def Asset.getAssetFromTx (tx : Transaction) : Asset :=
       | none => 0
     | _ => 0
 
-  let balanceMap := Std.HashMap.empty.insert tx.to_address value
+  let balanceMap := Std.HashMap.empty.insert tx.from_address value
   { id := tx.to_address, assetType := AssetType.Token, balanceMap }

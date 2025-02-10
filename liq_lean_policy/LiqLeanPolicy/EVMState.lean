@@ -27,6 +27,7 @@ structure Account where
   nonce: Nat
   code: List Nat
   storage: Std.HashMap Nat Nat := Std.HashMap.empty
+  deriving Repr
 
 /- Block header -/
 structure BlockHeader where
@@ -45,14 +46,24 @@ structure Block where
   deriving Repr, BEq, DecidableEq
 
 /- World state as a mapping from addresses to accounts -/
-def WorldState : Std.HashMap Address Account := Std.HashMap.empty
+def WorldState := Std.HashMap Address Account
+deriving Repr
+
+def setContract (self : WorldState) (address : Address) : WorldState :=
+  let smartContract : Account := {
+    balance : Nat := 0,
+    nonce := 0,
+    code := [111],
+    storage := Std.HashMap.empty,
+  }
+  self.insert address smartContract
 
 /- Blockchain as a list of blocks -/
 def Blockchain := List Block
 
-def isEOA (address : Address) : Bool :=
+def isEOA (worldState : WorldState) (address : Address) : Bool :=
   -- If address in WorldState and account.code is not empty, then not EOA
-  match WorldState.get? address with
+  match worldState.get? address with
   | some account => account.code.isEmpty -- If code is not empty, then smart contract
   | none => true -- Assume all other addresses are EOAs
 

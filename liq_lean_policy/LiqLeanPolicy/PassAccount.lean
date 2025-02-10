@@ -46,9 +46,9 @@ def PassAccount.mkEmpty (eoa : Address) : PassAccount := {
 }
 
 -- Processes a standard EVM transaction
-def PassAccount.processExternalTx (self : PassAccount) (tx : Transaction) : PassAccount :=
+def PassAccount.processExternalTx (self : PassAccount) (tx : Transaction) (worldState : WorldState) : PassAccount :=
   -- Get Asset from EVM Transaction
-  let asset := Asset.getAssetFromTx tx
+  let asset := Asset.getAssetFromTx tx worldState
   let value := asset.getBalance tx.from_address
 
   -- Update inbox
