@@ -28,13 +28,13 @@ structure PassTransaction where
 def Asset.mkEmpty (assetId : String) : Asset :=
   { id := assetId, assetType := AssetType.Ether, balanceMap := Std.HashMap.empty }
 
-def Asset.getBalance (asset : Asset) (address : Address) : Nat :=
-  match asset.balanceMap.get? address with
+def Asset.getBalance (self : Asset) (address : Address) : Nat :=
+  match self.balanceMap.get? address with
   | some bal => bal
   | none => 0
 
-def Asset.getTotalBalance (asset : Asset) : Nat :=
-  asset.balanceMap.fold (fun sum _ bal => sum + bal) 0
+def Asset.getTotalBalance (self : Asset) : Nat :=
+  self.balanceMap.fold (fun sum _ bal => sum + bal) 0
 
 def Asset.updateBalance (asset : Asset) (address : Address) (amount : Nat) : Asset :=
   let newBalanceMap := asset.balanceMap.insert address amount

@@ -90,3 +90,38 @@ def PassAccount.processClaim (self : PassAccount) (claimAssetId : String) (claim
   let newClaimMap := self.inbox.claimMap.insert claimer newClaimerAssetMap
   let newSelf := self.setAsset newAsset
   { newSelf with inbox := { newSelf.inbox with claimMap := newClaimMap } }
+
+
+
+def PassAccount.checkBalance (self : PassAccount) (assetId : String) (requestor : Address) (amount : Nat) : Bool :=
+  let asset := self.getAsset assetId
+  match asset with
+  | none => false
+  | some asset => asset.getBalance requestor >= amount
+
+
+-- Basic access control policy for Internal Transactions.
+def PassAccount.checkAllow (self : PassAccount) (assetId : String) (recipient : Address) (amount : Nat) : Bool :=
+  true -- Allow everything for everyone
+
+def PassAccount.processSend (self : PassAccount) (assetId : String) (recipient : Address) (amount : Nat) : PassAccount :=
+  -- TODO: Implement send to outbox
+  self
+
+def PassAccount.processInternalTx (self : PassAccount) (tx : PassTransaction) : (PassAccount × Bool) :=
+  if self.checkBalance tx.asset.id tx.sender tx.amount && self.checkAllow tx.asset.id tx.recipient tx.amount then
+    if tx.txType = TransactionType.external then
+      (self.processSend tx.asset.id tx.recipient tx.amount, true)
+    else
+      -- Process internal transaction
+      -- Update AssetMap
+      let currAsset := self.getAsset tx.asset.id
+      match currAsset with
+      | none => (self, false)
+      | some currAsset =>
+        let oldBalance := currAsset.getBalance tx.sender
+        let newAsset := Asset.updateBalance currAsset tx.sender (oldBalance - tx.amount)
+        let newAsset := Asset.updateBalance newAsset tx.recipient (currAsset.getBalance tx.recipient + tx.amount)
+        (self.setAsset newAsset, true)
+  else
+    (self, false)
