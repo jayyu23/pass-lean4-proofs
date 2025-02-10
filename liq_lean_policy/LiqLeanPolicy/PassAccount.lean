@@ -66,7 +66,6 @@ def PassAccount.processExternalTx (self : PassAccount) (tx : Transaction) (world
   let newClaimMap := self.inbox.claimMap.insert tx.from_address newSenderAssetMap
   { self with inbox := { self.inbox with claimMap := newClaimMap } }
 
-
 -- Process a claimMap claim from the inbox
 def PassAccount.processClaim (self : PassAccount) (claimAssetId : String) (claimer : Address) :=
   -- Get claim amount
@@ -103,6 +102,11 @@ def PassAccount.checkBalance (self : PassAccount) (assetId : String) (requestor 
 -- Basic access control policy for Internal Transactions.
 def PassAccount.checkAllow (self : PassAccount) (assetId : String) (recipient : Address) (amount : Nat) : Bool :=
   true -- Allow everything for everyone
+
+-- Trivial demonstration that checkAllow is decidable
+instance (self : PassAccount) (assetId : String) (recipient : Address) (amount : Nat) :
+  Decidable (PassAccount.checkAllow self assetId recipient amount) :=
+  isTrue rfl
 
 def PassAccount.outboxSubmit (self : PassAccount) : (PassAccount × List Transaction) :=
   -- TODO: Loop for each pending transaction in outbox. Dequeue, sign, and create new Transaction
