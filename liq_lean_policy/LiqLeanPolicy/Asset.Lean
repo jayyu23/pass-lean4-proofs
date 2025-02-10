@@ -25,6 +25,9 @@ structure PassTransaction where
   amount : Nat
   deriving Repr
 
+def Asset.mkEmpty (assetId : String) : Asset :=
+  { id := assetId, assetType := AssetType.Ether, balanceMap := Std.HashMap.empty }
+
 def Asset.getBalance (asset : Asset) (address : Address) : Nat :=
   match asset.balanceMap.get? address with
   | some bal => bal

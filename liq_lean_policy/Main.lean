@@ -11,7 +11,7 @@ def worldState : WorldState :=
   let world := Std.HashMap.empty
   setContract world usdc_contract
 
-#eval worldState
+--#eval worldState
 -- #eval isEOA worldState addressA
 -- #eval isEOA worldState usdc_contract
 
@@ -79,4 +79,10 @@ def test2 : PassAccount :=
   let pa3 := pa2.processExternalTx tx4 worldState
   pa3.processExternalTx tx5 worldState
 
-#eval test2.inbox.claimMap
+def test3 : PassAccount :=
+  let pa := test2
+  pa.processClaim "ether" addressB
+
+-- #eval test2.inbox
+-- #eval test3
+#eval test3.assets

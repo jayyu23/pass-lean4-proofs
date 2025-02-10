@@ -31,7 +31,9 @@ def PassAccount.getAsset (self : PassAccount) (assetId : String)  : Option Asset
   self.assets.find? (fun asset => asset.id = assetId)
 
 def PassAccount.setAsset (self : PassAccount) (asset : Asset) : PassAccount :=
-  { self with assets := self.assets.map (fun a => if a.id = asset.id then asset else a) }
+  match self.assets.find? (fun a => a.id = asset.id) with
+  | some _ => { self with assets := self.assets.map (fun a => if a.id = asset.id then asset else a) }
+  | none => { self with assets := asset :: self.assets }
 
 def PassAccount.removeAsset (self : PassAccount) (assetId : String) : PassAccount :=
   { self with assets := self.assets.filter (fun a => a.id != assetId) }
@@ -66,13 +68,17 @@ def PassAccount.processExternalTx (self : PassAccount) (tx : Transaction) (world
 
 
 -- Process a claimMap claim from the inbox
-def PassAccount.processClaim (self : PassAccount) (claimAsset : Asset) (claimer : Address) :=
+def PassAccount.processClaim (self : PassAccount) (claimAssetId : String) (claimer : Address) :=
   -- Get claim amount
+  let claimAsset := match self.getAsset claimAssetId with
+    | none => Asset.mkEmpty claimAssetId
+    | some asset => asset
+
   let claimerAssetMap := match self.inbox.claimMap.get? claimer with
     | none => Std.HashMap.empty
     | some map => map
 
-  let claimAmount := match claimerAssetMap.get? claimAsset.id with
+  let claimAmount := match claimerAssetMap.get? claimAssetId with
     | none => 0
     | some amount => amount
 
