@@ -36,20 +36,14 @@ def PassAccount.setAsset (self : PassAccount) (asset : Asset) : PassAccount :=
 def PassAccount.removeAsset (self : PassAccount) (assetId : String) : PassAccount :=
   { self with assets := self.assets.filter (fun a => a.id != assetId) }
 
--- def PassAccount.claimAsset (self : PassAccount) (assetId : String) (requester : SubAccount) : PassAccount :=
---   match self.inbox.claimMap.find? (fun (sender, id, _) => id = assetId && requester.owner = sender) with
---   | none => self  -- No claim found in inbox, return unchanged
---   | some (sender, _, claimAmount) =>
---     match self.getAsset assetId with
---     | some asset =>
---       let newBalance := asset.getBalance requester.owner + claimAmount
---       -- Update Asset
---       let newAsset := Asset.updateBalance asset requester.owner newBalance
---       let updatedAssets := self.assets.map (fun a => if a.id = assetId then newAsset else a)
---       -- Update Inbox
---       let newInbox := { self.inbox with claimMap := self.inbox.claimMap.filter (fun (s, id, _) => !(s = sender && id = assetId)) }
---       { self with assets := updatedAssets, inbox := newInbox }  -- Use updatedAssets
---     | none => self  -- Asset not found, return unchanged
+def PassAccount.mkEmpty (eoa : Address) : PassAccount := {
+  id := "",
+  subaccounts := [],
+  eoaAccount := eoa,
+  assets := [],
+  inbox := { id := "inbox", owner := eoa, claimMap := Std.HashMap.empty },
+  outbox := { id := "outbox", owner := eoa, txQueue := [], nonce := 0 }
+}
 
 -- Processes a standard EVM transaction
 def PassAccount.processExternalTx (self : PassAccount) (tx : Transaction) : PassAccount :=

@@ -56,10 +56,14 @@ def isEOA (address : Address) : Bool :=
   | some account => account.code.isEmpty -- If code is not empty, then smart contract
   | none => true -- Assume all other addresses are EOAs
 
-/- Util functions -/
--- Add value to a HashMap. We assume that value is a numeric
-def Std.HashMap.addVal {K V} [BEq K] [Hashable K] [Add V]
-  (map : Std.HashMap K V) (key : K) (value : V) : Std.HashMap K V :=
-  match map.get? key with
-  | some v => map.insert key (v + value)
-  | none => map.insert key value
+-- Convert a Float to a Nat
+def toNat (x : Float) : Nat :=
+    Float.toUInt64 x |>.toNat
+
+def parseEther (value : Float) : Wei :=
+  let weiValue := (value * 10^18)
+  toNat weiValue
+
+def parseGwei (value : Float) : Wei :=
+  let weiValue := (value * 10^9)
+  toNat weiValue
