@@ -13,7 +13,7 @@ structure Asset where
   deriving Repr
 
 inductive TransactionType
-  | external
+  | external -- Inbox/Outbox related
   | internal
   deriving Repr, BEq, DecidableEq
 

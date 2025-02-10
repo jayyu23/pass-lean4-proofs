@@ -13,9 +13,9 @@ structure Inbox extends SubAccount where
   deriving Repr
 
 structure Outbox extends SubAccount where
-  txQueue : List Transaction
+  txQueue : List PassTransaction
   nonce : Nat
-  deriving Repr, BEq, DecidableEq
+  deriving Repr
 
 structure PassAccount where
   /-- Unique identifier for the pass account -/
@@ -104,23 +104,44 @@ def PassAccount.checkBalance (self : PassAccount) (assetId : String) (requestor 
 def PassAccount.checkAllow (self : PassAccount) (assetId : String) (recipient : Address) (amount : Nat) : Bool :=
   true -- Allow everything for everyone
 
-def PassAccount.processSend (self : PassAccount) (assetId : String) (recipient : Address) (amount : Nat) : PassAccount :=
-  -- TODO: Implement send to outbox
-  self
+def PassAccount.outboxSubmit (self : PassAccount) : (PassAccount × List Transaction) :=
+  -- TODO: Loop for each pending transaction in outbox. Dequeue, sign, and create new Transaction
+  let resultTxList : List Transaction := []
+  for tx in self.outbox.txQueue do
+    match tx.asset.assetType with
+    | AssetType.Ether =>
+    -- Create new TX
+      let newTx : Transaction := {
+      nonce := self.outbox.nonce,
+      from_address := self.eoaAccount,
+      to_address := tx.recipient,
+      value := tx.amount,
+      data := [],
+      gasPrice := getGasPrice,
+      gasLimit := getGasLimit,
+      }
+     }
+    -- Pop from outbox and append to resultTxList
+    | _ => none -- TODO: Handle non-ether assets
+  (self, [])
 
+
+-- Process Internal Transaction. Returns (PassAccount, Status : Bool)
 def PassAccount.processInternalTx (self : PassAccount) (tx : PassTransaction) : (PassAccount × Bool) :=
   if self.checkBalance tx.asset.id tx.sender tx.amount && self.checkAllow tx.asset.id tx.recipient tx.amount then
-    if tx.txType = TransactionType.external then
-      (self.processSend tx.asset.id tx.recipient tx.amount, true)
-    else
-      -- Process internal transaction
-      -- Update AssetMap
-      let currAsset := self.getAsset tx.asset.id
-      match currAsset with
-      | none => (self, false)
-      | some currAsset =>
-        let oldBalance := currAsset.getBalance tx.sender
-        let newAsset := Asset.updateBalance currAsset tx.sender (oldBalance - tx.amount)
+    let currAsset := self.getAsset tx.asset.id
+    match currAsset with
+    | none => (self, false)
+    | some currAsset =>
+      let oldBalance := currAsset.getBalance tx.sender
+      let newAsset := Asset.updateBalance currAsset tx.sender (oldBalance - tx.amount)
+      if tx.txType = TransactionType.external then
+        -- Send to the outbox
+        let newOutbox := { self.outbox with txQueue := tx :: self.outbox.txQueue }
+        let newSelf := { self with outbox := newOutbox }
+        (newSelf.setAsset newAsset, true)
+      else
+        -- Process internal transaction by updating recipient asset balance
         let newAsset := Asset.updateBalance newAsset tx.recipient (currAsset.getBalance tx.recipient + tx.amount)
         (self.setAsset newAsset, true)
   else

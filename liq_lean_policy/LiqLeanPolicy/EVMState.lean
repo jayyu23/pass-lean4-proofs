@@ -9,7 +9,7 @@ deriving Repr, BEq, DecidableEq, Hashable
 def Wei := Nat
 deriving Repr, BEq, DecidableEq
 
-/- Basic transaction structure -/
+/- Basic EVM transaction structure -/
 structure Transaction where
   nonce: Nat
   from_address: Address
@@ -78,3 +78,11 @@ def parseEther (value : Float) : Wei :=
 def parseGwei (value : Float) : Wei :=
   let weiValue := (value * 10^9)
   toNat weiValue
+
+def getGasPrice : Wei :=
+  -- Return arbitrary value for now
+  parseGwei 30
+
+def getGasLimit : Nat :=
+  -- Return arbitrary value for now
+  21000
