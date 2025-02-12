@@ -99,7 +99,7 @@ def PassAccount.checkBalance (self : PassAccount) (assetId : String) (requestor 
   | some asset => asset.getBalance requestor >= amount
 
 
--- Basic access control policy for Internal Transactions.
+-- Basic access control policy for Internal Transactions. This can be extended to support any decidable function.
 def PassAccount.checkAllow (self : PassAccount) (assetId : String) (recipient : Address) (amount : Nat) : Bool :=
   true -- Allow everything for everyone
 
@@ -108,26 +108,41 @@ instance (self : PassAccount) (assetId : String) (recipient : Address) (amount :
   Decidable (PassAccount.checkAllow self assetId recipient amount) :=
   isTrue rfl
 
-def PassAccount.outboxSubmit (self : PassAccount) : (PassAccount × List Transaction) :=
-  -- TODO: Loop for each pending transaction in outbox. Dequeue, sign, and create new Transaction
-  let resultTxList : List Transaction := []
+def PassAccount.outboxSubmit (self : PassAccount) : (PassAccount × List Transaction) := do
+  let mut acc := self
+  let mut resultTxList := []
+
   for tx in self.outbox.txQueue do
     match tx.asset.assetType with
-    | AssetType.Ether =>
-    -- Create new TX
+    | AssetType.Ether => do
+      -- Create new transaction
       let newTx : Transaction := {
-      nonce := self.outbox.nonce,
-      from_address := self.eoaAccount,
-      to_address := tx.recipient,
-      value := tx.amount,
-      data := [],
-      gasPrice := getGasPrice,
-      gasLimit := getGasLimit,
+        nonce := acc.outbox.nonce,
+        from_address := acc.eoaAccount,
+        to_address := tx.recipient,
+        value := tx.amount,
+        data := [],
+        gasPrice := getGasPrice,
+        gasLimit := getGasLimit
       }
-     }
-    -- Pop from outbox and append to resultTxList
-    | _ => none -- TODO: Handle non-ether assets
-  (self, [])
+      -- Update nonce and append to result list
+      acc := { acc with outbox := { acc.outbox with nonce := acc.outbox.nonce + 1 } }
+      resultTxList := resultTxList.append [newTx]
+    | AssetType.ERC20 => do
+      -- Get the asset contract address from asset.id
+      let contractAddress := asset.id
+      let newTx : Transaction := {
+        nonce := acc.outbox.nonce,
+        from_address := acc.eoaAccount,
+        to_address := contractAddress,
+        value := 0,
+        data := [tx.recipient, tx.amount], -- Recipient and amount
+        gasPrice := getGasPrice,
+        gasLimit := getGasLimit
+      }
+    | _ => pure () -- Skip other asset types.
+
+  (acc, resultTxList)
 
 
 -- Process Internal Transaction. Returns (PassAccount, Status : Bool)
