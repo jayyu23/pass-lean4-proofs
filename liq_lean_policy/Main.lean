@@ -66,9 +66,6 @@ def tx5 : Transaction := {
     gasLimit := 21000
   }
 
--- #eval getAssetFromTx1
-
--- #eval tx1
 def test1 : PassAccount :=
   let pa1 := passAccount1.processExternalTx tx1 worldState
   pa1.processExternalTx tx2 worldState
@@ -82,6 +79,69 @@ def test2 : PassAccount :=
 def test3 : PassAccount :=
   let pa := test2
   pa.processClaim "ether" addressB
+
+-- Test processClaim with multiple assets and claimers
+def testProcessClaim1 : PassAccount :=
+  let pa1 := passAccount1.processExternalTx tx3 worldState  -- USDC transaction
+  let pa2 := pa1.processExternalTx tx1 worldState          -- ETH transaction
+  pa2.processClaim "usdc" addressB                         -- Claim USDC
+
+def testProcessClaim2 : PassAccount :=
+  let pa1 := test2  -- Account with multiple transactions
+  let pa2 := pa1.processClaim "usdc" addressC             -- Claim USDC
+  pa2.processClaim "ether" addressB                       -- Claim ETH
+
+-- Test internal transactions
+def internalTx1 : PassTransaction := {
+  txType := TransactionType.internal,
+  sender := addressA,
+  recipient := addressB,
+  amount := parseEther 0.5,
+  asset := Asset.mkEmpty "ether"
+}
+
+def internalTx2 : PassTransaction := {
+  txType := TransactionType.external,
+  sender := addressA,
+  recipient := addressC,
+  amount := parseEther 0.3,
+  asset := Asset.mkEmpty "ether"
+}
+
+def testInternalTx1 : (PassAccount × Bool) :=
+  let pa1 := test3  -- Account with claimed assets
+  pa1.processInternalTx internalTx1
+
+def testInternalTx2 : (PassAccount × Bool) :=
+  let pa1 := test3
+  let (pa2, _) := pa1.processInternalTx internalTx1
+  pa2.processInternalTx internalTx2
+
+-- Test outbox submission
+def testOutboxSubmit1 : (PassAccount × List Transaction) :=
+  let pa1 := test3
+  let (pa2, _) := pa1.processInternalTx internalTx2  -- Add external tx to outbox
+  pa2.outboxSubmit
+
+-- Test combined flow
+def testCombinedFlow : (PassAccount × List Transaction) :=
+  let pa1 := test2
+  let pa2 := pa1.processClaim "ether" addressB
+  let (pa3, _) := pa2.processInternalTx internalTx2
+  pa3.outboxSubmit
+
+#eval testProcessClaim1.assets
+#eval testProcessClaim2.inbox
+#eval testInternalTx1.1  -- Check success status
+#eval testInternalTx2.0.outbox  -- Check outbox queue
+#eval testOutboxSubmit1.1  -- Check generated transactions
+#eval testCombinedFlow.1
+
+
+
+
+
+
 
 -- #eval test2.inbox
 -- #eval test3
