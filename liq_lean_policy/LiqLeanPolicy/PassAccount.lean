@@ -2,6 +2,8 @@ import LiqLeanPolicy.Asset
 import LiqLeanPolicy.EVMState
 import Std.Data.HashSet
 
+
+
 structure SubAccount where
   /-- Unique identifier for the subaccount -/
   id : String
@@ -108,14 +110,14 @@ instance (self : PassAccount) (assetId : String) (recipient : Address) (amount :
   Decidable (PassAccount.checkAllow self assetId recipient amount) :=
   isTrue rfl
 
-def PassAccount.outboxSubmit (self : PassAccount) : (PassAccount × List Transaction) := do
-  let mut acc := self
-  let mut resultTxList := []
+def PassAccount.outboxSubmit (self : PassAccount) : (PassAccount × List Transaction) :=
 
-  for tx in self.outbox.txQueue do
+  let initState := (self, [])
+
+  let (acc, resultTxList) := self.outbox.txQueue.foldl (fun (state : PassAccount × List Transaction) tx =>
+    let (acc, resultTxList) := state
     match tx.asset.assetType with
-    | AssetType.Ether => do
-      -- Create new transaction
+    | AssetType.Ether =>
       let newTx : Transaction := {
         nonce := acc.outbox.nonce,
         from_address := acc.eoaAccount,
@@ -125,25 +127,24 @@ def PassAccount.outboxSubmit (self : PassAccount) : (PassAccount × List Transac
         gasPrice := getGasPrice,
         gasLimit := getGasLimit
       }
-      -- Update nonce and append to result list
-      acc := { acc with outbox := { acc.outbox with nonce := acc.outbox.nonce + 1 } }
-      resultTxList := resultTxList.append [newTx]
-    | AssetType.ERC20 => do
-      -- Get the asset contract address from asset.id
-      let contractAddress := asset.id
+      let newAcc := { acc with outbox := { acc.outbox with nonce := acc.outbox.nonce + 1 } }
+      (newAcc, resultTxList.append [newTx])
+    | AssetType.Token =>
+      let contractAddress := tx.asset.id
       let newTx : Transaction := {
         nonce := acc.outbox.nonce,
         from_address := acc.eoaAccount,
         to_address := contractAddress,
-        value := 0,
-        data := [tx.recipient, tx.amount], -- Recipient and amount
+        value := parseEther 0,
+        data := [tx.recipient, toString tx.amount],
         gasPrice := getGasPrice,
         gasLimit := getGasLimit
       }
-    | _ => pure () -- Skip other asset types.
-
+      let newAcc := { acc with outbox := { acc.outbox with nonce := acc.outbox.nonce + 1 } }
+      (newAcc, resultTxList.append [newTx])
+    | _ => (acc, resultTxList)
+  ) initState
   (acc, resultTxList)
-
 
 -- Process Internal Transaction. Returns (PassAccount, Status : Bool)
 def PassAccount.processInternalTx (self : PassAccount) (tx : PassTransaction) : (PassAccount × Bool) :=

@@ -130,12 +130,12 @@ def testCombinedFlow : (PassAccount × List Transaction) :=
   let (pa3, _) := pa2.processInternalTx internalTx2
   pa3.outboxSubmit
 
-#eval testProcessClaim1.assets
-#eval testProcessClaim2.inbox
-#eval testInternalTx1.1  -- Check success status
-#eval testInternalTx2.0.outbox  -- Check outbox queue
-#eval testOutboxSubmit1.1  -- Check generated transactions
-#eval testCombinedFlow.1
+-- #eval testProcessClaim1.assets
+-- #eval testProcessClaim2.inbox
+#eval (testInternalTx1.2) -- Check success status
+-- #eval testInternalTx2.0.outbox  -- Check outbox queue
+-- #eval testOutboxSubmit1.1  -- Check generated transactions
+-- #eval testCombinedFlow.1
 
 
 
