@@ -163,7 +163,7 @@ def PassAccount.processInternalTx (self : PassAccount) (tx : PassTransaction) : 
       let newAsset := Asset.updateBalance currAsset tx.sender (oldBalance - tx.amount)
       if tx.txType = TransactionType.external then
         -- Send to the outbox
-        let newOutbox := { self.outbox with txQueue := tx :: self.outbox.txQueue }
+        let newOutbox := { self.outbox with txQueue := self.outbox.txQueue ++ [tx] }
         let newSelf := { self with outbox := newOutbox }
         (newSelf.setAsset newAsset, true)
       else

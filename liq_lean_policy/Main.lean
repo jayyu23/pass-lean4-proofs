@@ -102,24 +102,40 @@ def test4 : PassAccount × Bool :=
     asset := usdcAsset
   }
 
-  -- let (pa1, _) := pa2.processInternalTx internalTx1
-  -- pa1.processInternalTx internalTx2
   let (pa3, _) := pa2.processInternalTx internalTx1
   pa3.processInternalTx internalTx2
 
 -- Test transaction to outbox
 def test5 : (PassAccount × Bool) :=
   let pa := test4.1
-  let asset := pa.getAssetOrNull "ether"
+  let etherAsset := pa.getAssetOrNull "ether"
+  let usdcAsset := pa.getAssetOrNull usdc_contract
 
   let outboxTx : PassTransaction := {
     txType := TransactionType.external,
     sender := addressB,
     recipient := addressD,
     amount := parseEther 0.5,
-    asset := asset
+    asset := etherAsset
   }
-  pa.processInternalTx outboxTx
+
+  let outboxTx2 : PassTransaction := {
+    txType := TransactionType.external,
+    sender := addressB,
+    recipient := addressD,
+    amount := 100,
+    asset := usdcAsset
+  }
+  let outboxTx3 : PassTransaction := {
+    txType := TransactionType.external,
+    sender := addressB,
+    recipient := addressC,
+    amount := 1000,
+    asset := usdcAsset
+  }
+  let (pa1, _) := pa.processInternalTx outboxTx
+  let (pa2, _) := pa1.processInternalTx outboxTx2
+  pa2.processInternalTx outboxTx3
 
 -- Test outbox emit Transaction
 def test6 : (PassAccount × List Transaction) :=
