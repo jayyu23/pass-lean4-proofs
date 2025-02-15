@@ -45,6 +45,16 @@ structure Block where
   transactions: List Transaction
   deriving Repr, BEq, DecidableEq
 
+-- External WalletConnector Message (eg. from Reown (WalletConnect) or MetaMask)
+structure WalletConnectorMessage where
+  domain: String
+  message: String
+  signature: String
+  deriving Repr, BEq, DecidableEq
+
+def isSigned (self : WalletConnectorMessage) : Bool :=
+  self.signature.length > 0
+
 /- World state as a mapping from addresses to accounts -/
 def WorldState := Std.HashMap Address Account
 deriving Repr

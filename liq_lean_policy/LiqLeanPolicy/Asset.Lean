@@ -42,6 +42,9 @@ def Asset.getBalance (self : Asset) (address : Address) : Nat :=
 def Asset.isNull (self : Asset) : Bool :=
   self.id == "null" || self.assetType == AssetType.Null
 
+def Asset.isGSM (self : Asset) : Bool :=
+  self.id == "message" || self.assetType == AssetType.GSM
+
 def Asset.getTotalBalance (self : Asset) : Nat :=
   self.balanceMap.fold (fun sum _ bal => sum + bal) 0
 
@@ -69,3 +72,30 @@ def Asset.getAssetFromTx (tx : Transaction) (worldState : WorldState) : Asset :=
 
   let balanceMap := Std.HashMap.empty.insert tx.from_address value
   { id := tx.to_address, assetType := AssetType.Token, balanceMap }
+
+-- General Signable Message
+structure GeneralSignableMessage extends Asset where
+  -- Map of addresses to a list of GSMs
+  domainAddressMap : Std.HashMap String Address := Std.HashMap.empty
+  defaultSigner : Address
+  deriving Repr
+
+def GeneralSignableMessage.mkEmpty (defaultSigner : Address) : GeneralSignableMessage :=
+  { id := "message", assetType := AssetType.GSM, balanceMap := Std.HashMap.empty, domainAddressMap := Std.HashMap.empty, defaultSigner }
+
+def GeneralSignableMessage.hasDomain (self : GeneralSignableMessage) (domain : String) : Bool :=
+  self.domainAddressMap.contains domain
+
+def GeneralSignableMessage.getSigner (self : GeneralSignableMessage) (domain : String) : Address :=
+  match self.domainAddressMap.get? domain with
+  | some signer => signer
+  | none => self.defaultSigner
+
+def GeneralSignableMessage.getDomains (self : GeneralSignableMessage) (address : Address) : List String :=
+  -- Find all domains where address is the signer
+  self.domainAddressMap.fold (fun acc domain signer =>
+    if signer == address then domain :: acc else acc) []
+
+def GeneralSignableMessage.setDomain (self : GeneralSignableMessage) (domain : String) (address : Address) : GeneralSignableMessage :=
+  let newDomainMap := self.domainAddressMap.insert domain address
+  { self with domainAddressMap := newDomainMap }
