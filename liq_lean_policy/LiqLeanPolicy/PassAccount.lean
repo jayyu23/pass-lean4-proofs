@@ -32,6 +32,12 @@ structure PassAccount where
 def PassAccount.getAsset (self : PassAccount) (assetId : String)  : Option Asset :=
   self.assets.find? (fun asset => asset.id = assetId)
 
+-- Wrapper for getAsset that returns a null asset if the asset is not found
+def PassAccount.getAssetOrNull (self : PassAccount) (assetId : String) : Asset :=
+  match self.getAsset assetId with
+  | some asset => asset
+  | none => Asset.mkEmpty "null"
+
 def PassAccount.setAsset (self : PassAccount) (asset : Asset) : PassAccount :=
   match self.assets.find? (fun a => a.id = asset.id) with
   | some _ => { self with assets := self.assets.map (fun a => if a.id = asset.id then asset else a) }

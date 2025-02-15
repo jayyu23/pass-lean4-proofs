@@ -1,7 +1,7 @@
 import LiqLeanPolicy.EVMState
 
 inductive AssetType
-  | Undefined
+  | Null
   | Ether -- ETH is a special asset case
   | Token -- Non-ETH Token contract
   | GSM -- General Signable Message
@@ -30,7 +30,7 @@ def Asset.mkEmpty (assetId : String) : Asset :=
   if assetId == "ether" then
     { id := assetId, assetType := AssetType.Ether, balanceMap := Std.HashMap.empty }
   else if assetId == "null" then
-    { id := assetId, assetType := AssetType.Undefined, balanceMap := Std.HashMap.empty }
+    { id := assetId, assetType := AssetType.Null, balanceMap := Std.HashMap.empty }
   else
     { id := assetId, assetType := AssetType.Token, balanceMap := Std.HashMap.empty }
 
@@ -38,6 +38,9 @@ def Asset.getBalance (self : Asset) (address : Address) : Nat :=
   match self.balanceMap.get? address with
   | some bal => bal
   | none => 0
+
+def Asset.isNull (self : Asset) : Bool :=
+  self.id == "null" || self.assetType == AssetType.Null
 
 def Asset.getTotalBalance (self : Asset) : Nat :=
   self.balanceMap.fold (fun sum _ bal => sum + bal) 0

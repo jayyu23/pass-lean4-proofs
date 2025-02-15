@@ -83,16 +83,9 @@ def test3 : PassAccount :=
 def test4 : PassAccount × Bool :=
   let pa := test3
   let pa2 := pa.processClaim "ether" addressB
-  let asset := pa2.getAsset "ether"
-  let asset := match asset with
-    | some asset => asset
-    | none => Asset.mkEmpty "null"
+  let asset := pa2.getAssetOrNull "ether"
 
-  let usdcAsset := pa2.getAsset usdc_contract
-  let usdcAsset := match usdcAsset with
-    | some asset => asset
-    | none => Asset.mkEmpty "null"
-
+  let usdcAsset := pa2.getAssetOrNull usdc_contract
   -- Ether transfer from addressB to addressC
   let internalTx1 : PassTransaction := {
     txType := TransactionType.internal,
@@ -117,10 +110,7 @@ def test4 : PassAccount × Bool :=
 -- Test transaction to outbox
 def test5 : (PassAccount × Bool) :=
   let pa := test4.1
-  let asset := pa.getAsset "ether"
-  let asset := match asset with
-    | some asset => asset
-    | none => Asset.mkEmpty "null"
+  let asset := pa.getAssetOrNull "ether"
 
   let outboxTx : PassTransaction := {
     txType := TransactionType.external,
