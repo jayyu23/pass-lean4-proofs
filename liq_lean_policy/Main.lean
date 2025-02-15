@@ -3,6 +3,7 @@ import LiqLeanPolicy.PassAccount
 def eoaAddress : Address := "0x1111"
 def addressB : Address := "0x2222"
 def addressC : Address := "0x3333"
+def addressD : Address := "0x4444"
 def usdc_contract : Address := "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
 def passAccount1 : PassAccount := PassAccount.mkEmpty eoaAddress
 
@@ -113,64 +114,29 @@ def test4 : PassAccount × Bool :=
   let (pa3, _) := pa2.processInternalTx internalTx1
   pa3.processInternalTx internalTx2
 
+-- Test transaction to outbox
+def test5 : (PassAccount × Bool) :=
+  let pa := test4.1
+  let asset := pa.getAsset "ether"
+  let asset := match asset with
+    | some asset => asset
+    | none => Asset.mkEmpty "null"
+
+  let outboxTx : PassTransaction := {
+    txType := TransactionType.external,
+    sender := addressB,
+    recipient := addressD,
+    amount := parseEther 0.5,
+    asset := asset
+  }
+  pa.processInternalTx outboxTx
+
+-- Test outbox emit Transaction
+def test6 : (PassAccount × List Transaction) :=
+  let pa := test5.1
+  pa.outboxSubmit
+
 #eval test3.assets
 #eval test4.1.assets
-
--- -- Test internalTx
--- def test4 : PassAccount :=
---   let pa := test2
-
--- -- Test processClaim with multiple assets and claimers
--- def testProcessClaim1 : PassAccount :=
---   let pa1 := passAccount1.processExternalTx tx3 worldState  -- USDC transaction
---   let pa2 := pa1.processExternalTx tx1 worldState          -- ETH transaction
---   pa2.processClaim "usdc" addressB                         -- Claim USDC
-
--- def testProcessClaim2 : PassAccount :=
---   let pa1 := test2  -- Account with multiple transactions
---   let pa2 := pa1.processClaim "usdc" addressC             -- Claim USDC
---   pa2.processClaim "ether" addressB                       -- Claim ETH
-
--- -- Test internal transactions
-
-
--- def internalTx2 : PassTransaction := {
---   txType := TransactionType.external,
---   sender := addressA,
---   recipient := addressC,
---   amount := parseEther 0.3,
---   asset := Asset.mkEmpty "ether"
--- }
-
--- def testInternalTx1 : (PassAccount × Bool) :=
---   let pa1 := test3  -- Account with claimed assets
---   pa1.processInternalTx internalTx1
-
--- def testInternalTx2 : (PassAccount × Bool) :=
---   let pa1 := test3
---   let (pa2, _) := pa1.processInternalTx internalTx1
---   pa2.processInternalTx internalTx2
-
--- -- Test outbox submission
--- def testOutboxSubmit1 : (PassAccount × List Transaction) :=
---   let pa1 := test3
---   let (pa2, _) := pa1.processInternalTx internalTx2  -- Add external tx to outbox
---   pa2.outboxSubmit
-
--- -- Test combined flow
--- def testCombinedFlow : (PassAccount × List Transaction) :=
---   let pa1 := test2
---   let pa2 := pa1.processClaim "ether" addressB
---   let (pa3, _) := pa2.processInternalTx internalTx2
---   pa3.outboxSubmit
-
--- -- #eval testProcessClaim1.assets
--- -- #eval testProcessClaim2.inbox
--- #eval (testInternalTx1.2) -- Check success status
--- -- #eval testInternalTx2.0.outbox  -- Check outbox queue
--- -- #eval testOutboxSubmit1.1  -- Check generated transactions
--- -- #eval testCombinedFlow.1
-
--- -- #eval test2.inbox
--- -- #eval test3
--- #eval test3.assets
+#eval test5.1.outbox.txQueue
+#eval test6.2
