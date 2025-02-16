@@ -27,7 +27,9 @@ structure PassAccount where
   assets : List Asset
   inbox : Inbox
   outbox : Outbox
+  messageAsset : GeneralSignableMessage
   deriving Repr
+
 
 def PassAccount.getAsset (self : PassAccount) (assetId : String)  : Option Asset :=
   self.assets.find? (fun asset => asset.id = assetId)
@@ -52,7 +54,8 @@ def PassAccount.mkEmpty (eoa : Address) : PassAccount := {
   eoaAccount := eoa,
   assets := [],
   inbox := { id := "inbox", owner := eoa, claimMap := Std.HashMap.empty },
-  outbox := { id := "outbox", owner := eoa, txQueue := [], nonce := 0 }
+  outbox := { id := "outbox", owner := eoa, txQueue := [], nonce := 0 },
+  messageAsset := GeneralSignableMessage.mkEmpty eoa
 }
 
 -- Processes a standard EVM transaction
