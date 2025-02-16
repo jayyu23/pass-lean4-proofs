@@ -12,6 +12,7 @@ structure SubAccount where
 
 structure Inbox extends SubAccount where
   claimMap : Std.HashMap Address (Std.HashMap String Nat) := Std.HashMap.empty -- Sender, AssetID, ClaimAmount
+  messageList : Std.HashMap Address (List WalletConnectorMessage) := Std.HashMap.empty -- Sender, MessageList
   deriving Repr
 
 structure Outbox extends SubAccount where
@@ -48,14 +49,14 @@ def PassAccount.setAsset (self : PassAccount) (asset : Asset) : PassAccount :=
 def PassAccount.removeAsset (self : PassAccount) (assetId : String) : PassAccount :=
   { self with assets := self.assets.filter (fun a => a.id != assetId) }
 
-def PassAccount.mkEmpty (eoa : Address) : PassAccount := {
+def PassAccount.mkEmpty (eoa : Address) (creator : Address) : PassAccount := {
   id := "",
   subaccounts := [],
   eoaAccount := eoa,
   assets := [],
   inbox := { id := "inbox", owner := eoa, claimMap := Std.HashMap.empty },
   outbox := { id := "outbox", owner := eoa, txQueue := [], nonce := 0 },
-  messageAsset := GeneralSignableMessage.mkEmpty eoa
+  messageAsset := GeneralSignableMessage.mkEmpty creator
 }
 
 -- Processes a standard EVM transaction
@@ -175,3 +176,38 @@ def PassAccount.processInternalTx (self : PassAccount) (tx : PassTransaction) : 
         (self.setAsset newAsset, true)
   else
     (self, false)
+
+-- Process GSMs
+def PassAccount.transferGSMDomain (self : PassAccount) (domain : String) (currentOwner : Address) (newOwner : Address) : (PassAccount × Bool) :=
+  -- Check Current Owner
+  let gsm := self.messageAsset
+  if gsm.getSigner domain = currentOwner then
+    let newGSM := gsm.setDomain domain newOwner
+    let newSelf := { self with messageAsset := newGSM }
+    (newSelf, true)
+  else
+    (self, false)
+
+def PassAccount.processInboundMessage (self : PassAccount) (message : WalletConnectorMessage) : (PassAccount × Bool) :=
+  let messageAsset := self.messageAsset
+  let messageOwner := messageAsset.getSigner message.domain
+  let ownerList := self.inbox.messageList.get? messageOwner
+  match ownerList with
+  | none => (self, false)
+  | some list =>
+    let newList := list.append [message]
+    let newSelf := { self with inbox := { self.inbox with messageList := self.inbox.messageList.insert messageOwner newList } }
+    (newSelf, true)
+
+def PassAccount.internalSignGSM (self : PassAccount) (signer : Address) (domain : String) : (PassAccount × Bool) :=
+  let gsm := self.messageAsset
+
+  -- TODO: Implement this, send this to the outbox.
+  -- let newGSM := gsm.setDomain domain signer
+  -- let newSelf := { self with messageAsset := newGSM }
+  -- (newSelf, true)
+  (self, false)
+
+def PassAccount.outboxSignGSM (self : PassAccount) (signer : Address) (domain : String) : (PassAccount × Bool) :=
+  -- TODO: Implement this, send this to the outbox.
+  (self, false)

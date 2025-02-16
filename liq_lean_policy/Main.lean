@@ -5,7 +5,7 @@ def addressB : Address := "0x2222"
 def addressC : Address := "0x3333"
 def addressD : Address := "0x4444"
 def usdc_contract : Address := "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
-def passAccount1 : PassAccount := PassAccount.mkEmpty eoaAddress
+def passAccount1 : PassAccount := PassAccount.mkEmpty eoaAddress addressB
 
 -- World state with USDC contract deployed
 def worldState : WorldState :=
