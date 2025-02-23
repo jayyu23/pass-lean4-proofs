@@ -17,6 +17,7 @@ structure Inbox extends SubAccount where
 
 structure Outbox extends SubAccount where
   txQueue : List PassTransaction
+  gsmQueue : List WalletConnectorMessage
   nonce : Nat
   deriving Repr
 
@@ -199,14 +200,37 @@ def PassAccount.processInboundMessage (self : PassAccount) (message : WalletConn
     let newSelf := { self with inbox := { self.inbox with messageList := self.inbox.messageList.insert messageOwner newList } }
     (newSelf, true)
 
-def PassAccount.internalSignGSM (self : PassAccount) (signer : Address) (domain : String) : (PassAccount × Bool) :=
-  let gsm := self.messageAsset
+-- Basic access control policy for Messages. This can be extended to support any decidable function.
+def PassAccount.checkMessageAllow (self : PassAccount) (domain : String) (signer : Address) : Bool :=
+  true -- Allow everything for everyone
 
-  -- TODO: Implement this, send this to the outbox.
-  -- let newGSM := gsm.setDomain domain signer
-  -- let newSelf := { self with messageAsset := newGSM }
-  -- (newSelf, true)
-  (self, false)
+-- Trivial demonstration that checkMessageAllow is decidable
+instance (self : PassAccount) (domain : String) (signer : Address) :
+  Decidable (PassAccount.checkMessageAllow self domain signer) :=
+  isTrue rfl
+
+
+-- Process a single WalletConnectorMessage from the inbox.
+def PassAccount.internalSignGSM (self : PassAccount) (signer : Address) (message : WalletConnectorMessage) : (PassAccount × Bool) :=
+  let gsm := self.messageAsset
+  let domain := message.domain
+
+  -- Check if message is contained within the inbox and allowed
+  if gsm.getSigner domain = signer &&
+     self.checkMessageAllow domain signer &&
+     (match self.inbox.messageList.get? signer with
+      | none => false
+      | some list => list.contains message) then
+  -- Remove message from inbox
+    let newInbox := { self.inbox with messageList := self.inbox.messageList.erase signer }
+    let newSelf := { self with inbox := newInbox }
+
+    -- Send to outbox
+    let newOutbox := { self.outbox with gsmQueue := self.outbox.gsmQueue ++ [message] }
+    let newSelf := { newSelf with outbox := newOutbox }
+    (newSelf, true)
+  else
+    (self, false)
 
 def PassAccount.outboxSignGSM (self : PassAccount) (signer : Address) (domain : String) : (PassAccount × Bool) :=
   -- TODO: Implement this, send this to the outbox.
