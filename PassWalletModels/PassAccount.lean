@@ -1,5 +1,5 @@
-import LiqLeanPolicy.Asset
-import LiqLeanPolicy.EVMState
+import PassWalletModels.Asset
+import PassWalletModels.EVMState
 import Std.Data.HashSet
 
 
@@ -24,7 +24,7 @@ structure Outbox extends SubAccount where
 structure PassAccount where
   /-- Unique identifier for the pass account -/
   id : String
-  subaccounts : List SubAccount
+  -- subaccounts : List SubAccount
   eoaAccount : Address -- The affiliated EOA account address
   assets : List Asset
   inbox : Inbox
@@ -52,7 +52,7 @@ def PassAccount.removeAsset (self : PassAccount) (assetId : String) : PassAccoun
 
 def PassAccount.mkEmpty (eoa : Address) (creator : Address) : PassAccount := {
   id := "",
-  subaccounts := [],
+  -- subaccounts := [],
   eoaAccount := eoa,
   assets := [],
   inbox := { id := "inbox", owner := eoa, claimMap := Std.HashMap.empty },

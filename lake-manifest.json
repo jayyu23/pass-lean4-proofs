@@ -91,5 +91,5 @@
    "inputRev": "main",
    "inherited": true,
    "configFile": "lakefile.toml"}],
- "name": "liq_lean_policy",
+ "name": "pass_wallet_models",
  "lakeDir": ".lake"}

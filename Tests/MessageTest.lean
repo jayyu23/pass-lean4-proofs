@@ -1,5 +1,5 @@
-import LiqLeanPolicy.PassAccount
-import LiqLeanPolicy.Asset
+import PassWalletModels.PassAccount
+import PassWalletModels.Asset
 
 
 -- TODO: Test out GSMs

@@ -1,4 +1,4 @@
-import LiqLeanPolicy.EVMState
+import PassWalletModels.EVMState
 
 inductive AssetType
   | Null
@@ -12,6 +12,7 @@ structure Asset where
   assetType : AssetType
   balanceMap : Std.HashMap Address Nat := Std.HashMap.empty
   deriving Repr
+
 
 inductive TransactionType
   | external -- Inbox/Outbox related
@@ -33,6 +34,9 @@ def Asset.mkEmpty (assetId : String) : Asset :=
     { id := assetId, assetType := AssetType.Null, balanceMap := Std.HashMap.empty }
   else
     { id := assetId, assetType := AssetType.Token, balanceMap := Std.HashMap.empty }
+
+instance : Inhabited Asset where
+  default := Asset.mkEmpty "null"
 
 def Asset.getBalance (self : Asset) (address : Address) : Nat :=
   match self.balanceMap.get? address with

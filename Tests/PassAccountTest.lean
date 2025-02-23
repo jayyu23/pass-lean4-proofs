@@ -1,4 +1,4 @@
-import LiqLeanPolicy.PassAccount
+import PassWalletModels.PassAccount
 
 def eoaAddress : Address := "0x1111"
 def addressB : Address := "0x2222"
