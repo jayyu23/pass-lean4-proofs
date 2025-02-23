@@ -56,7 +56,7 @@ def PassAccount.mkEmpty (eoa : Address) (creator : Address) : PassAccount := {
   eoaAccount := eoa,
   assets := [],
   inbox := { id := "inbox", owner := eoa, claimMap := Std.HashMap.empty },
-  outbox := { id := "outbox", owner := eoa, txQueue := [], nonce := 0 },
+  outbox := { id := "outbox", owner := eoa, txQueue := [], gsmQueue := [], nonce := 0 },
   messageAsset := GeneralSignableMessage.mkEmpty creator
 }
 
@@ -194,7 +194,10 @@ def PassAccount.processInboundMessage (self : PassAccount) (message : WalletConn
   let messageOwner := messageAsset.getSigner message.domain
   let ownerList := self.inbox.messageList.get? messageOwner
   match ownerList with
-  | none => (self, false)
+  | none => let newList := [message]
+            let newInbox := { self.inbox with messageList := self.inbox.messageList.insert messageOwner newList }
+            let newSelf := { self with inbox := newInbox }
+            (newSelf, true)
   | some list =>
     let newList := list.append [message]
     let newSelf := { self with inbox := { self.inbox with messageList := self.inbox.messageList.insert messageOwner newList } }
@@ -232,6 +235,12 @@ def PassAccount.internalSignGSM (self : PassAccount) (signer : Address) (message
   else
     (self, false)
 
-def PassAccount.outboxSignGSM (self : PassAccount) (signer : Address) (domain : String) : (PassAccount × Bool) :=
-  -- TODO: Implement this, send this to the outbox.
-  (self, false)
+-- Sign all GSMs in the outbox
+def PassAccount.outboxSignGSM (self : PassAccount) : (PassAccount × List WalletConnectorMessage) :=
+  -- Clear Messages from Outbox to create
+  -- Return signed GSMs
+  let signedGSMs := self.outbox.gsmQueue.map (fun message =>
+    { message with signature := self.eoaAccount })
+  let newOutbox := { self.outbox with gsmQueue := [] }
+  let newSelf := { self with outbox := newOutbox }
+  (newSelf, signedGSMs)
