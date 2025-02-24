@@ -32,7 +32,6 @@ structure PassAccount where
   messageAsset : GeneralSignableMessage
   deriving Repr
 
-
 def PassAccount.getAsset (self : PassAccount) (assetId : String)  : Option Asset :=
   self.assets.find? (fun asset => asset.id = assetId)
 

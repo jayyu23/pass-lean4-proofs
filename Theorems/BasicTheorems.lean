@@ -1,5 +1,6 @@
 import PassWalletModels.PassAccount
 import PassWalletModels.Asset
+import Mathlib.Tactic.Basic
 
 -- Basic theorems about PassAccount properties
 theorem empty_account_has_no_assets (eoa creator : Address) :
@@ -17,6 +18,55 @@ theorem balance_non_negative (pa : PassAccount) (assetId : String) (addr : Addre
   | some asset =>
     -- Balance is Nat which is always ≥ 0
     exact Nat.zero_le (asset.getBalance addr)
+
+-- lemma failed_transfer_returns_original_account (pa: PassAccount) (tx: PassTransaction):
+--   let (newPa, success):= pa.processInternalTx tx
+--   success = false → pa = newPa:= by
+--   dsimp only [PassAccount.processInternalTx] at *
+--   split <;> intro h
+-- . cases h
+--     case inl h => simp [checkBalance] at h; contradiction
+--     case inr h => simp [checkAllow] at h; contradiction
+-- . cases h
+--     case inl h => simp [checkBalance] at h; contradiction
+--     case inr h =>
+--       cases (pa.getAsset tx.asset.id) <;> simp at h
+--       case none => contradiction
+--       case some a =>
+--         simp [checkAllow] at h
+--         cases (tx.txType = TransactionType.external) <;> simp at h
+--         contradiction
+--         contradiction
+
+
+-- theorem internal_transfer_preserves_total (pa : PassAccount) (tx : PassTransaction) :
+--   tx.txType = TransactionType.internal →
+--   match pa.getAsset tx.asset.id with
+--   | none => true
+--   | some asset =>
+--     let (newPa, success) := pa.processInternalTx tx
+--     match newPa.getAsset tx.asset.id, success with
+--     | some newAsset, true => asset.getTotalBalance = newAsset.getTotalBalance
+--     | _, false => pa = newPa
+--     | none, true => false := by
+--   intro h_internal
+--   cases ha : pa.getAsset tx.asset.id with
+--   | none => trivial
+--   | some asset =>
+--     -- Get result of processing transaction
+--     let (newPa, success) := pa.processInternalTx tx
+
+--     -- Case analysis on balance and allowance checks
+--     by_cases c : pa.checkBalance tx.asset.id tx.sender tx.amount ∧
+--                  pa.checkAllow tx.asset.id tx.recipient tx.amount
+--     . -- Case: transfer succeeds
+--       simp [PassAccount.processInternalTx, h_internal, c, ha]
+--       -- Show total balance is preserved when moving funds between accounts
+--       sorry
+--     . -- Case: transfer fails
+--       simp [PassAccount.processInternalTx, c]
+--       rfl
+  -- Split into cases based on initial checks
 
 
 -- Asset preservation during transfer

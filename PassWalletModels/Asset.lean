@@ -38,6 +38,14 @@ def Asset.mkEmpty (assetId : String) : Asset :=
 instance : Inhabited Asset where
   default := Asset.mkEmpty "null"
 
+def Asset.isEqual (self : Asset) (other : Asset) : Bool :=
+  self.id = other.id &&
+  self.assetType = other.assetType &&
+  self.balanceMap.toList == other.balanceMap.toList
+
+instance : BEq Asset where
+  beq a b := Asset.isEqual a b
+
 def Asset.getBalance (self : Asset) (address : Address) : Nat :=
   match self.balanceMap.get? address with
   | some bal => bal
