@@ -11,6 +11,7 @@ structure Asset where
   id : String
   assetType : AssetType
   balanceMap : Std.HashMap Address Nat := Std.HashMap.empty
+  totalBalance : Nat := 0
   deriving Repr
 
 
