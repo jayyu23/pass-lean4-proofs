@@ -2,8 +2,6 @@ import PassWalletModels.Asset
 import PassWalletModels.EVMState
 import Std.Data.HashSet
 
-
-
 structure SubAccount where
   /-- Unique identifier for the subaccount -/
   id : String
