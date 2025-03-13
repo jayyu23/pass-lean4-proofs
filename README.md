@@ -1,11 +1,11 @@
-# Liquefaction Lean Policy Framework
-Lean4 Policy Framework for Programmable Wallets based on Liquefaction
+# PASS: Provenanced Asset Subaccount System
+Lean4 Policy Framework for Programmable Wallets based on PASS
 
-Liquefaction Resources: [Paper](https://arxiv.org/abs/2412.02634) | [Github](https://github.com/key-encumbrance/liquefaction)
+PASS Prototype Implementation: [Github](https://github.com/jayyu23/pass-wallet-app)
 
 ## Overview
 
-This repository contains a Lean4 policy framework for programmable wallets.
+This repository contains a Lean4 policy framework for programmable wallets, as part of the PASS project.
 
 ## Getting Started
 
