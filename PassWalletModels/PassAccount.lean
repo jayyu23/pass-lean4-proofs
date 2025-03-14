@@ -2,6 +2,8 @@ import PassWalletModels.Asset
 import PassWalletModels.EVMState
 import Std.Data.HashSet
 
+set_option linter.unusedVariables false
+
 structure SubAccount where
   /-- Unique identifier for the subaccount -/
   id : String
@@ -28,6 +30,7 @@ structure PassAccount where
   inbox : Inbox
   outbox : Outbox
   messageAsset : GeneralSignableMessage
+  provHistory : List PassTransaction
   deriving Repr
 
 def PassAccount.getAsset (self : PassAccount) (assetId : String)  : Option Asset :=
@@ -54,7 +57,8 @@ def PassAccount.mkEmpty (eoa : Address) (creator : Address) : PassAccount := {
   assets := [],
   inbox := { id := "inbox", owner := eoa, claimMap := Std.HashMap.empty },
   outbox := { id := "outbox", owner := eoa, txQueue := [], gsmQueue := [], nonce := 0 },
-  messageAsset := GeneralSignableMessage.mkEmpty creator
+  messageAsset := GeneralSignableMessage.mkEmpty creator,
+  provHistory := []
 }
 
 -- Processes a standard EVM transaction
@@ -77,7 +81,7 @@ def PassAccount.processExternalTx (self : PassAccount) (tx : Transaction) (world
   { self with inbox := { self.inbox with claimMap := newClaimMap } }
 
 -- Process a claimMap claim from the inbox
-def PassAccount.processClaim (self : PassAccount) (claimAssetId : String) (claimer : Address) :=
+def PassAccount.processClaim (self : PassAccount) (claimAssetId : String) (claimer : Address) : PassAccount :=
   -- Get claim amount
   let claimAsset := match self.getAsset claimAssetId with
     | none => Asset.mkEmpty claimAssetId
@@ -98,7 +102,16 @@ def PassAccount.processClaim (self : PassAccount) (claimAssetId : String) (claim
   let newClaimerAssetMap := claimerAssetMap.erase claimAsset.id
   let newClaimMap := self.inbox.claimMap.insert claimer newClaimerAssetMap
   let newSelf := self.setAsset newAsset
-  { newSelf with inbox := { newSelf.inbox with claimMap := newClaimMap } }
+
+  -- Add claim transaction to provHistory
+  let newTx := {
+    txType := TransactionType.claim,
+    sender := claimer,
+    recipient := claimer,
+    asset := claimAsset,
+    amount := claimAmount
+  }
+  { newSelf with inbox := { newSelf.inbox with claimMap := newClaimMap }, provHistory := newTx :: self.provHistory }
 
 
 
@@ -163,17 +176,23 @@ def PassAccount.processInternalTx (self : PassAccount) (tx : PassTransaction) : 
     | some currAsset =>
       let oldBalance := currAsset.getBalance tx.sender
       let newAsset := Asset.updateBalance currAsset tx.sender (oldBalance - tx.amount)
-      if tx.txType = TransactionType.external then
+      if tx.txType = TransactionType.withdraw then
         -- Send to the outbox
         let newOutbox := { self.outbox with txQueue := self.outbox.txQueue ++ [tx] }
-        let newSelf := { self with outbox := newOutbox }
+        let newSelf := { self with outbox := newOutbox, provHistory := tx :: self.provHistory }
         (newSelf.setAsset newAsset, true)
-      else
+      else if tx.txType = TransactionType.transfer then
         -- Process internal transaction by updating recipient asset balance
         let newAsset := Asset.updateBalance newAsset tx.recipient (currAsset.getBalance tx.recipient + tx.amount)
-        (self.setAsset newAsset, true)
+        let newSelf := { self with provHistory := tx :: self.provHistory }
+        (newSelf.setAsset newAsset, true)
+      else
+        (self, false) -- Invalid transaction type
   else
-    (self, false)
+    (self, false) -- Invalid balance or allowance
+
+def PassAccount.getProvHistory (self : PassAccount) (assetId : String) : List PassTransaction :=
+  self.provHistory.filter (fun tx => tx.asset.id = assetId)
 
 -- Process GSMs
 def PassAccount.transferGSMDomain (self : PassAccount) (domain : String) (currentOwner : Address) (newOwner : Address) : (PassAccount × Bool) :=

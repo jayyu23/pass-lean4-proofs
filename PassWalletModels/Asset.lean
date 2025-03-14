@@ -16,8 +16,9 @@ structure Asset where
 
 
 inductive TransactionType
-  | external -- Inbox/Outbox related
-  | internal
+  | claim -- Claim an asset from the inbox
+  | transfer -- Internal transfer of an asset
+  | withdraw -- Withdraw an asset from the outbox
   deriving Repr, BEq, DecidableEq
 
 structure PassTransaction where

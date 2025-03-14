@@ -88,14 +88,14 @@ def test4 : PassAccount × Bool :=
   let usdcAsset := pa2.getAssetOrNull usdc_contract
   -- Ether transfer from addressB to addressC
   let internalTx1 : PassTransaction := {
-    txType := TransactionType.internal,
+    txType := TransactionType.transfer,
     sender := addressB,
     recipient := addressC,
     amount := parseEther 0.5,
     asset := asset
   }
   let internalTx2 : PassTransaction := {
-    txType := TransactionType.internal,
+    txType := TransactionType.transfer,
     sender := addressC,
     recipient := addressB,
     amount := 4000,
@@ -112,7 +112,7 @@ def test5 : (PassAccount × Bool) :=
   let usdcAsset := pa.getAssetOrNull usdc_contract
 
   let outboxTx : PassTransaction := {
-    txType := TransactionType.external,
+    txType := TransactionType.withdraw,
     sender := addressB,
     recipient := addressD,
     amount := parseEther 0.5,
@@ -120,14 +120,14 @@ def test5 : (PassAccount × Bool) :=
   }
 
   let outboxTx2 : PassTransaction := {
-    txType := TransactionType.external,
+    txType := TransactionType.withdraw,
     sender := addressB,
     recipient := addressD,
     amount := 100,
     asset := usdcAsset
   }
   let outboxTx3 : PassTransaction := {
-    txType := TransactionType.external,
+    txType := TransactionType.withdraw,
     sender := addressB,
     recipient := addressC,
     amount := 1000,
@@ -145,4 +145,5 @@ def test6 : (PassAccount × List Transaction) :=
 #eval test3.assets
 #eval test4.1.assets
 #eval test5.1.outbox.txQueue
+#eval test5.1.provHistory
 #eval test6.2
