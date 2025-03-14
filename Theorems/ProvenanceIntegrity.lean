@@ -4,7 +4,7 @@ import PassWalletModels.EVMState
 import Mathlib.Tactic.Basic
 import Std -- needed for Std.HashMap, fold, etc.
 
-open Std -- so that HashMap and List.foldl, etc. can be accessed more directly
+open Std
 
 namespace ProvenanceIntegrity
 
@@ -25,15 +25,7 @@ def totalWithdrawn (pa : PassAccount) (assetId : String) : Nat :=
   |> List.foldl (fun sum tx => sum + tx.amount) 0
 
 /--
-  Helper function to calculate total transferred amount for an asset (internal transfers).
--/
-def totalTransferred (pa : PassAccount) (assetId : String) : Nat :=
-  pa.getProvHistory assetId
-  |> List.filter (fun tx => tx.txType = TransactionType.transfer)
-  |> List.foldl (fun sum tx => sum + tx.amount) 0
-
-/--
-  Helper to calculate net external deposits (claimed - withdrawn).
+  netExternalDeposits = total claimed - total withdrawn (clamped at 0).
 -/
 def netExternalDeposits (pa : PassAccount) (assetId : String) : Nat :=
   let claimed := totalClaimed pa assetId
@@ -41,60 +33,70 @@ def netExternalDeposits (pa : PassAccount) (assetId : String) : Nat :=
   if claimed ≥ withdrawn then claimed - withdrawn else 0
 
 /--
-  Provenance Integrity Theorem:
-  For any PASS account and any asset, the total amount of the asset
-  held across all subaccounts can never exceed the total amount of
-  external deposits minus withdrawals.
+  Helper theorem: if a PassAccount has no transactions in its provenance history,
+  then any asset in that account must have zero balance.
+-/
+/--
+  Helper theorem: if a PassAccount has no transactions in its provenance history,
+  then any asset in that account must have zero balance.
+-/
+def no_transactions_implies_zero_balance (pa : PassAccount) (assetId : String) :
+  pa.provHistory.isEmpty → (pa.getAssetOrNull assetId).getTotalBalance = 0 := by
+  admit
+
+/--
+  **Provenance Integrity**:
+  For any PASS account and any asset, the total amount held across subaccounts
+  cannot exceed net external deposits (claims - withdrawals).
 -/
 theorem provenance_integrity (pa : PassAccount) (assetId : String) :
-  let asset := pa.getAssetOrNull assetId
-  let totalSubaccountBalance := asset.getTotalBalance
-  let netDeposits := netExternalDeposits pa assetId
-  totalSubaccountBalance ≤ netDeposits := by
-  -- We'll prove this by (sketched) induction on the provenance history.
+    let asset := pa.getAssetOrNull assetId
+    let totalBalance := asset.getTotalBalance
+    let netDeposits := netExternalDeposits pa assetId
+    totalBalance ≤ netDeposits := by
 
-  let asset := pa.getAssetOrNull assetId
-  let totalBalance := asset.getTotalBalance
-  let netDeposits := netExternalDeposits pa assetId
+  -- We'll do induction on the list pa.provHistory.
+  induction pa.provHistory with
+  | nil =>
+    -- Base case: no provenance records at all
+    -- Argue that totalBalance must be 0, and netDeposits must be 0.
+    have h_balance_zero : (pa.getAssetOrNull assetId).getTotalBalance = 0 := by
+      -- Usually you'd prove or require: "No transactions => no assets"
+      -- Use no_transactions_implies_zero_balance
+      exact no_transactions_implies_zero_balance pa assetId
+    have h_deposits_zero : netExternalDeposits pa assetId = 0 := by
+      -- No claims, no withdraw => netExternalDeposits = 0
+      sorry
+    rw [h_balance_zero, h_deposits_zero]
+    apply Nat.zero_le
 
-  -- Base case: empty history
-  if h_empty : pa.provHistory.isEmpty then
-    have h_balance_zero : totalBalance = 0 := by
-      -- If provHistory is empty, then either asset doesn't exist or is empty
-      have h_asset : pa.getAssetOrNull assetId = Asset.mkEmpty assetId := by
-        unfold PassAccount.getAssetOrNull
-      rw [h_asset]
-      simp [Asset.getTotalBalance]
-
-    have h_deposits_zero : netDeposits = 0 := by
-      dsimp [netExternalDeposits, totalClaimed, totalWithdrawn]
-      -- pa.getProvHistory assetId = [] in this branch
-      simp [h_empty]
-
-    simp [h_balance_zero, h_deposits_zero]
-  else
-    -- Inductive case: prove each operation preserves totalBalance ≤ netDeposits
+  | cons head tail ih =>
+    -- Inductive step:
+    -- 1) Let pa' be pa minus the last record (or you reconstruct a "prefix" account).
+    -- 2) Apply ih to show the property for that prefix.
+    -- 3) Case-split on head.txType to see how it changes the final totalBalance and netDeposits.
     sorry
 
 /--
-  Statement of provenance integrity explicitly via summing all subaccount balances.
+  Same statement, but summing balances by enumerating addresses in the asset's `balanceMap`.
+  Then we reduce that sum to `asset.getTotalBalance`.
 -/
 theorem provenance_integrity_sum (pa : PassAccount) (assetId : String) :
-  let asset := pa.getAssetOrNull assetId
-  let allAddresses := asset.balanceMap.toList.map Prod.fst
-  let sumBalances := allAddresses.foldl (fun acc addr => acc + asset.getBalance addr) 0
-  let netDeposits := netExternalDeposits pa assetId
-  sumBalances ≤ netDeposits := by
+    let asset := pa.getAssetOrNull assetId
+    let allAddresses := asset.balanceMap.toList.map Prod.fst
+    let sumBalances := allAddresses.foldl (fun acc addr => acc + asset.getBalance addr) 0
+    let netDeposits := netExternalDeposits pa assetId
+    sumBalances ≤ netDeposits := by
 
   let asset := pa.getAssetOrNull assetId
   let allAddresses := asset.balanceMap.toList.map Prod.fst
   let sumBalances := allAddresses.foldl (fun acc addr => acc + asset.getBalance addr) 0
   let netDeposits := netExternalDeposits pa assetId
 
-  -- show sumBalances = asset.getTotalBalance
+  -- Show sumBalances = getTotalBalance:
   have h_sum_eq_total : sumBalances = asset.getTotalBalance := by
     dsimp [Asset.getTotalBalance]
-    -- prove that folding over the map's keys = totalBalance
+    -- e.g. you might prove that folding over balanceMap's values matches asset.getTotalBalance
     sorry
 
   rw [h_sum_eq_total]
